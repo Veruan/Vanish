@@ -6,6 +6,7 @@
 #include <stdbool.h>
 #include <stdio.h>
 #include <time.h>
+#include <math.h>
 
 //---------------------------------------CONSTANTS--------------------------------------
 
@@ -18,6 +19,7 @@ extern const uint16_t VBMP_BITS_PER_PIXEL;
 //---------------------------------------FUNCTIONS--------------------------------------
 
 //-----------------SIZE CALCULATION---------------------
+int estimate_size(FILE* hidden_file, uint16_t* rows, uint16_t* columns);
 uint32_t bmp_size(uint16_t rows, uint16_t columns);
 uint32_t pixel_array_size(uint16_t rows, uint16_t columns);
 uint32_t row_size(uint16_t columns);
@@ -26,10 +28,17 @@ uint32_t padding_bytes(uint16_t columns);
 
 
 //-----------------FILE CREATION------------------------
-int create_bmp_file(const char* const file_name, uint16_t rows, uint16_t columns);
 
-int create_bmp_header(FILE *file, uint32_t file_size);
+int embed_file_in_bmp(const char* const input_file_name, const char* const output_file_name);
+
+int create_bmp_file(FILE* hidden_file, const char* const output_file_name, uint16_t rows, uint16_t columns);
+
+int create_bmp_header(FILE* file, uint32_t file_size);
 int create_dib_header(FILE* file, uint16_t pixel_image_width, uint16_t pixel_image_height);
-int create_pixel_array(FILE* file, uint16_t rows, uint16_t columns);
+int create_pixel_array(FILE* file, uint16_t rows, uint16_t columns, FILE* hidden_file);
+
+int alter_lsb(FILE* hidden_file, uint8_t* BGR);
+
+//-----------------FILE APPEND------------------------
 
 #endif
