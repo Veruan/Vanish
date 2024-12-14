@@ -105,6 +105,48 @@ int embed_file_in_bmp(const char* const input_file_name, const char* const outpu
 }
 
 
+int extract_from_bmp(const char* const input_file_name, const char* const output_file_name)
+{
+	FILE* composite_file = fopen(input_file_name, "rb");
+	//FILE* extracted_file = fopen(output_file_name, "wb");
+
+	fseek(composite_file, VBMP_PIXEL_ARRAY_OFFSET, SEEK_SET);
+	uint8_t bytes[16];
+	fread(&bytes, 16, 1, composite_file);
+
+	char B = 0;
+	for (int i = 0; i < 8; i++) {
+		B = (B << 1) | (bytes[i] & 1); // Extract LSB and combine it into B
+	}
+
+
+	char M = 0;
+	for (int i = 8; i < 16; i++) {
+		M = (M << 1) | (bytes[i] & 1); // Extract LSB and combine it into B
+	}
+
+	fclose(composite_file);
+	//fclose(extracted_file);
+	/*uint16_t rows, columns;
+	fseek(composite_file, VBMP_BMP_HEADER_SIZE + 4, SEEK_SET);
+	fread(&columns, 2, 1, composite_file);
+	fseek(composite_file, VBMP_BMP_HEADER_SIZE + 6, SEEK_SET);
+	fread(&rows, 2, 1, composite_file);
+
+	fseek(composite_file, VBMP_PIXEL_ARRAY_OFFSET, SEEK_SET);
+	for (int i = 0; i < rows; i++)
+	{
+		for (int j = 0; j < columns; j++)
+		{
+		
+		}
+
+
+	}*/
+
+}
+
+
 int create_bmp_file(FILE* hidden_file, const char* const output_file_name, uint16_t rows, uint16_t columns)
 {
 	FILE* file = fopen(output_file_name, "wb");
@@ -238,11 +280,10 @@ int alter_lsb(FILE* hidden_file, uint8_t* BGR)
 	if (fseek(hidden_file, file_pointer, SEEK_SET) != 0)
 		return -1;
 
-
+	// kinda doubles the operation? to do smth with that later?
 	uint8_t byte = fgetc(hidden_file);
 	if (byte == EOF)
 		return 0;
-
 
 	uint8_t bits[3];
 	for (int i = 0; i < 3; i++)

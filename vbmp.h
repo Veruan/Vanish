@@ -30,6 +30,7 @@ uint32_t padding_bytes(uint16_t columns);
 //-----------------FILE CREATION------------------------
 
 int embed_file_in_bmp(const char* const input_file_name, const char* const output_file_name);
+int extract_from_bmp(const char* const input_file_name, const char* const output_file_name);
 
 int create_bmp_file(FILE* hidden_file, const char* const output_file_name, uint16_t rows, uint16_t columns);
 
