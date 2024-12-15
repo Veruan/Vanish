@@ -40,6 +40,7 @@ int create_pixel_array(FILE* file, uint16_t rows, uint16_t columns, FILE* hidden
 
 int alter_lsb(FILE* hidden_file, uint8_t* BGR);
 
+int extract_data(FILE* composite_file, uint16_t rows, uint16_t columns, FILE* extracted_file);
 //-----------------FILE APPEND------------------------
 
 #endif

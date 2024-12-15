@@ -108,42 +108,71 @@ int embed_file_in_bmp(const char* const input_file_name, const char* const outpu
 int extract_from_bmp(const char* const input_file_name, const char* const output_file_name)
 {
 	FILE* composite_file = fopen(input_file_name, "rb");
-	//FILE* extracted_file = fopen(output_file_name, "wb");
-
-	fseek(composite_file, VBMP_PIXEL_ARRAY_OFFSET, SEEK_SET);
-	uint8_t bytes[16];
-	fread(&bytes, 16, 1, composite_file);
-
-	char B = 0;
-	for (int i = 0; i < 8; i++) {
-		B = (B << 1) | (bytes[i] & 1); // Extract LSB and combine it into B
+	if (!composite_file)
+	{
+		perror("Error - extracting from bmp failed\n opening files");
+		return -1;
 	}
 
-
-	char M = 0;
-	for (int i = 8; i < 16; i++) {
-		M = (M << 1) | (bytes[i] & 1); // Extract LSB and combine it into B
+	FILE* extracted_file = fopen(output_file_name, "wb");
+	if (!extracted_file)
+	{
+		perror("Error - extracting from bmp failed\n opening files");
+		fclose(composite_file);
+		return -1;
 	}
+
+	// BMP Header's last argument is dword offset to pixel array
+	if (fseek(composite_file, VBMP_BMP_HEADER_SIZE - 4, SEEK_SET) != 0)
+	{
+		perror("Error - extracting from bmp failed\n fetching pixel array offset");
+		fclose(composite_file);
+		fclose(extracted_file);
+		return -1;
+	}
+	uint32_t pixel_array_offset;
+	if (fread(&pixel_array_offset, 4, 1, composite_file) != 1)
+	{
+		perror("Error - extracting from bmp failed\n fetching pixel array offset");
+		fclose(composite_file);
+		fclose(extracted_file);
+		return -1;
+	}
+
+	// DIB Header's second argument (1st is 4 bytes) is always image width, than image height
+	if (fseek(composite_file, VBMP_BMP_HEADER_SIZE + 4, SEEK_SET) != 0)
+	{
+		perror("Error - creating bmp failed\n fetching rows and cols");
+		fclose(composite_file);
+		fclose(extracted_file);
+		return -1;
+	}
+	uint16_t rows, columns;
+	uint16_t dimensions[2];
+	if (fread(dimensions, 2, 2, composite_file) != 2)
+	{
+		perror("Error - creating BMP failed while fetching rows and cols");
+		fclose(composite_file);
+		fclose(extracted_file);
+		return -1;
+	}
+	rows = dimensions[0];
+	columns = dimensions[1];
+
+	if (fseek(composite_file, pixel_array_offset, SEEK_SET) != 0)
+	{
+		perror("Error - creating bmp failed\n opening files");
+		fclose(composite_file);
+		fclose(extracted_file);
+		return -1;
+	}
+
+	extract_data(composite_file, rows, columns, extracted_file);
 
 	fclose(composite_file);
-	//fclose(extracted_file);
-	/*uint16_t rows, columns;
-	fseek(composite_file, VBMP_BMP_HEADER_SIZE + 4, SEEK_SET);
-	fread(&columns, 2, 1, composite_file);
-	fseek(composite_file, VBMP_BMP_HEADER_SIZE + 6, SEEK_SET);
-	fread(&rows, 2, 1, composite_file);
+	fclose(extracted_file);
 
-	fseek(composite_file, VBMP_PIXEL_ARRAY_OFFSET, SEEK_SET);
-	for (int i = 0; i < rows; i++)
-	{
-		for (int j = 0; j < columns; j++)
-		{
-		
-		}
-
-
-	}*/
-
+	return 0;
 }
 
 
@@ -305,6 +334,39 @@ int alter_lsb(FILE* hidden_file, uint8_t* BGR)
 	// Alter BGR lsb's according to bit value
 	for(int i = 0; i < 3; i++)
 		BGR[i] = bits[i] == 0 ? ((BGR[i] >> 1) << 1) : (BGR[i] | 1);
+
+	return 0;
+}
+
+
+int extract_data(FILE* composite_file, uint16_t rows, uint16_t columns, FILE* extracted_file)
+{
+	uint8_t bit_counter = 0, padding = padding_bytes(columns);
+	char byte = 0;
+
+	for (uint16_t i = 0; i < rows; i++)
+	{
+		for (uint16_t j = 0; j < columns; j++)
+		{
+			// there are 3 bytes of color to a pixel
+			for(uint8_t color_spectre = 0; color_spectre < 3; color_spectre++)
+			{
+				uint8_t color = fgetc(composite_file);
+				if (color == EOF)
+					return -1;
+
+				byte = (byte << 1) | (color & 1);
+
+				if (++bit_counter == 8)
+				{
+					fputc(byte, extracted_file);
+					bit_counter = 0;
+				}
+			}
+		}
+
+		fseek(composite_file, padding, SEEK_CUR);
+	}
 
 	return 0;
 }
